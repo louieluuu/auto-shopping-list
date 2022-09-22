@@ -12,6 +12,7 @@
 #for testing
 from ast import Return
 from cgitb import text
+from tkinter import SCROLL
 import unittest 
 
 #for parsing robots.txt urls
@@ -76,12 +77,22 @@ element.click()
 element = driver.find_element(By.CLASS_NAME, "search__input")
 element.click()
 time.sleep(2)
-element.send_keys("starforge horizon pro pc")
+
+search = "horizon" # shouldn't be the exact name of the item - humans don't search up "Starforge Horizon Creator Edition PC"
+
+element.send_keys(search)
 time.sleep(2)
 element.send_keys(Keys.RETURN)
 time.sleep(2)
-element = driver.find_element(By.CLASS_NAME, 'card__current-price')
-price = element.get_attribute("textContent")
+
+element = driver.find_elements(By.CLASS_NAME, "product-item__title")
+
+for item in element:
+    if "Creator" in item.text:
+        element = item
+
+sibling = element.find_element(By.XPATH, "./following-sibling::div")
+price = sibling.text
 price = price.replace("$", "").replace(",", "")
 print(price)
 driver.quit()
@@ -98,7 +109,7 @@ except:
     print("Element not found. Quitting now...")
     driver.quit()
 
-# alternative to element.text which also works
+# if element.text doesn't work, use this instead:
 # text1 = element.get_attribute("textContent")
 # print(text1)
 
