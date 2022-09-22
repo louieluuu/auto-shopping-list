@@ -87,12 +87,12 @@ for item in search_results:
 # check if the desired item is on sale 
 # note: we assume a Superstore item is on sale IFF it has a limit div.
 try: 
-    price_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
+    limit_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
 except:
     print("No sale. Moving on to the next item...")
 
 # get the price. example of price_div.text: "$4.29 LIMIT 4"
-price = price_div.text.split()
+price = limit_div.text.split()
 price = price[0]
 price = price.replace("$", "")
 print(price)
