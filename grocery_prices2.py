@@ -68,8 +68,9 @@ peas = Food("no name green peas", "Club Size", 4.99, 4.49)
 oats = Food("quick oats", "5.16 kg", 8.99, 6.49)
 peanut_butter = Food("no name peanut butter", "Club Size", 7.99, 6.99)
 condensed_milk = Food("condensed milk", "Brand Sweetened Condensed Milk", 2.99, 2.49)
+chicken_korma = Food("chicken korma", "President's Choice", 3.50, 3.00)
 
-superstore_foods = [lentils, peas, oats, peanut_butter, condensed_milk]
+superstore_foods = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma]
 
 # randomizing array to randomize search order (human behaviour)
 superstore_foods_randomized = []
@@ -77,9 +78,6 @@ for i in range(len(superstore_foods)):
     rand_i = random.randint(0, len(superstore_foods)-1)
     superstore_foods_randomized.append(superstore_foods[rand_i])
     superstore_foods.pop(rand_i)
-
-
-
     
 # Stalls program execution by 3-7 seconds to simulate human web-scrolling behaviour.  
 def stall():
@@ -118,18 +116,25 @@ for i in range(len(superstore_foods_randomized)):
             desired_item_div = item
 
     # check if the desired item is on sale 
-    # note: we assume a Superstore item is on sale IFF its limit div contains text
-    limit_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
-    if (limit_div.text): # IFF
-        # get the price. example of limit_div.text: "$4.29 LIMIT 4"
-        price = limit_div.text.split()
-        price = price[0]
-        price = price.replace("$", "")
+    # note: we assume a Superstore item is on sale IFF its badge div contains text
+    badge_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[1]")
+    price_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
+    if (badge_div.text): # IFF
+        # get the price
+        if ("LIMIT" in badge_div.text): # limit format: "$4.29 LIMIT 4"
+            price_array = price_div.text.split()
+            price = price_array[0]
+            price = (price.replace("$", ""))
+        elif ("MULTI" in badge_div.text): # multi format: "2 FOR $7.00"
+            price_array = price_div.text.split()
+            price = price_array[2]
+            price = price.replace("$", "")
+            price = format( ( float(price)/float(price_array[0]) ), ".2f" ) # formatting necessary due to division
         print("This food is on sale: " + superstore_foods_randomized[i].search)
         print("The price is: " + price)
     else:    
         print("This food is not on sale: " + superstore_foods_randomized[i].search)
-        print("No LIMIT. Moving on to the next item...")
+        print("Moving on to the next item...")
         continue
 
 stall()
