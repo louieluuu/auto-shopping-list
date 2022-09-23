@@ -63,14 +63,15 @@ class Food:
         self.max_buy_price = max_buy_price
         self.cheapest_price = cheapest_price
 
-lentils = Food("red split lentils", "1.8 kg", 4.49, 3.99)
-peas = Food("no name green peas", "Club Size", 4.99, 4.49)
-oats = Food("quick oats", "5.16 kg", 8.99, 6.49)
-peanut_butter = Food("no name peanut butter", "Club Size", 7.99, 6.99)
-condensed_milk = Food("condensed milk", "Brand Sweetened Condensed Milk", 2.99, 2.49)
-chicken_korma = Food("chicken korma", "President's Choice", 3.50, 3.00)
+lentils = Food("red split lentils", "1.8 kg", 4.50, 3.99)
+peas = Food("no name green peas", "Club Size", 5.00, 4.49)
+oats = Food("quick oats", "5.16 kg", 10.00, 6.49)
+peanut_butter = Food("no name peanut butter", "Club Size", 8.00, 6.99)
+condensed_milk = Food("condensed milk", "Brand Sweetened Condensed Milk", 3.00, 2.49)
+chicken_korma = Food("chicken korma", "President's Choice", 4.00, 3.49)
+annies_crackers = Food("annies crackers", "White Cheddar", 4.00, 3.49)
 
-superstore_foods = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma]
+superstore_foods = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma, annies_crackers]
 
 # randomizing array to randomize search order (human behaviour)
 superstore_foods_randomized = []
@@ -98,7 +99,6 @@ stall()
 for i in range(len(superstore_foods_randomized)):
     # engage with search bar
     search = superstore_foods_randomized[i].search
-
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
     search_bar.click()
     search_bar.clear()
@@ -108,7 +108,6 @@ for i in range(len(superstore_foods_randomized)):
 
     # find the div of the desired item from search results
     desired_item = superstore_foods_randomized[i].desired_item
-    
     search_results = driver.find_elements(By.TAG_NAME, "h3")
 
     for item in search_results:
@@ -124,14 +123,20 @@ for i in range(len(superstore_foods_randomized)):
         if ("LIMIT" in badge_div.text): # limit format: "$4.29 LIMIT 4"
             price_array = price_div.text.split()
             price = price_array[0]
-            price = (price.replace("$", ""))
+            price = float((price.replace("$", "")))
         elif ("MULTI" in badge_div.text): # multi format: "2 FOR $7.00"
             price_array = price_div.text.split()
             price = price_array[2]
             price = price.replace("$", "")
-            price = format( ( float(price)/float(price_array[0]) ), ".2f" ) # formatting necessary due to division
-        print("This food is on sale: " + superstore_foods_randomized[i].search)
-        print("The price is: " + price)
+            price = float ( format( ( float(price)/float(price_array[0]) ), ".2f" ) ) # formatting necessary due to price sometimes being 1 decimal place
+
+        # compare the price to the max_buy_price
+        if (price <= superstore_foods_randomized[i].max_buy_price):
+            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = superstore_foods_randomized[i].search.capitalize(), price = price, cheapest_price = superstore_foods_randomized[i].cheapest_price))
+        else:
+            print("This food is not on sale: " + superstore_foods_randomized[i].search)
+            print("Moving on to the next item...")
+            continue
     else:    
         print("This food is not on sale: " + superstore_foods_randomized[i].search)
         print("Moving on to the next item...")
