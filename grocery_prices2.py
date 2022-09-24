@@ -74,11 +74,7 @@ annies_crackers = Item("annies crackers", "White Cheddar", 4.00, 3.49)
 superstore_items = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma, annies_crackers]
 
 # randomizing array to randomize search order (human behaviour)
-superstore_items_randomized = []
-for i in range(len(superstore_items)):
-    rand_i = random.randint(0, len(superstore_items)-1)
-    superstore_items_randomized.append(superstore_items[rand_i])
-    superstore_items.pop(rand_i)
+random.shuffle(superstore_items)
     
 # Stalls program execution by 3-7 seconds to simulate human web-scrolling behaviour.  
 def stall():
@@ -97,12 +93,12 @@ driver.maximize_window() # human behaviour
 driver.get(superstore_url)
 stall()
 
-for i in range(len(superstore_items_randomized)):
+for i in range(len(superstore_items)):
     # close modals: not necessary for Superstore
     # close_modal_button = driver.find_element(By.ID, "closeActivityPop").click()
 
     # engage with search bar
-    search = superstore_items_randomized[i].search
+    search = superstore_items[i].search
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
     search_bar.click()
     search_bar.clear()
@@ -111,7 +107,7 @@ for i in range(len(superstore_items_randomized)):
     search_bar.send_keys(Keys.RETURN)
 
     # find the div of the desired item from search results
-    desired_item = superstore_items_randomized[i].desired_item
+    desired_item = superstore_items[i].desired_item
     search_results = driver.find_elements(By.TAG_NAME, "h3")
 
     for item in search_results:
@@ -135,14 +131,14 @@ for i in range(len(superstore_items_randomized)):
             price = float ( format( ( float(price)/float(price_array[0]) ), ".2f" ) ) # formatting necessary due to price sometimes being 1 decimal place
 
         # compare the price to the max_buy_price
-        if (price <= superstore_items_randomized[i].max_buy_price):
-            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = superstore_items_randomized[i].search.capitalize(), price = price, cheapest_price = superstore_items_randomized[i].cheapest_price))
+        if (price <= superstore_items[i].max_buy_price):
+            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = superstore_items[i].search.capitalize(), price = price, cheapest_price = superstore_items[i].cheapest_price))
         else:
-            print("This item is not on sale: " + superstore_items_randomized[i].search)
+            print("This item is not on sale: " + superstore_items[i].search)
             print("Moving on to the next item...")
             continue
     else:    
-        print("This item is not on sale: " + superstore_items_randomized[i].search)
+        print("This item is not on sale: " + superstore_items[i].search)
         print("Moving on to the next item...")
         continue
 
@@ -161,22 +157,18 @@ condensed_milk = Item("condensed milk", "Brand Sweetened Condensed Milk", 3.00, 
 nofrills_items = [lentils, peas, peanut_butter, condensed_milk]
 
 # randomizing array to randomize search order (human behaviour)
-nofrills_items_randomized = []
-for i in range(len(nofrills_items)):
-    rand_i = random.randint(0, len(nofrills_items)-1)
-    nofrills_items_randomized.append(nofrills_items[rand_i])
-    nofrills_items.pop(rand_i)
+random.shuffle(nofrills_items)
 
 nofrills_url = "https://www.nofrills.ca/"
 driver.get(nofrills_url)
 stall()
 
-for i in range(len(nofrills_items_randomized)):
+for i in range(len(nofrills_items)):
     # close modals: not necessary for No Frills
     # close_modal_button = driver.find_element(By.ID, "closeActivityPop").click()
 
     # engage with search bar
-    search = nofrills_items_randomized[i].search
+    search = nofrills_items[i].search
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
     search_bar.click()
     search_bar.clear()
@@ -185,7 +177,7 @@ for i in range(len(nofrills_items_randomized)):
     search_bar.send_keys(Keys.RETURN)
 
     # find the div of the desired item from search results
-    desired_item = nofrills_items_randomized[i].desired_item
+    desired_item = nofrills_items[i].desired_item
     search_results = driver.find_elements(By.TAG_NAME, "h3")
 
     for item in search_results:
@@ -214,12 +206,12 @@ for i in range(len(nofrills_items_randomized)):
             price = float(price.replace("$", ""))
 
         # compare the price to the max_buy_price
-        if (price <= nofrills_items_randomized[i].max_buy_price):
-            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = nofrills_items_randomized[i].search.capitalize(), price = price, cheapest_price = nofrills_items_randomized[i].cheapest_price))
+        if (price <= nofrills_items[i].max_buy_price):
+            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = nofrills_items[i].search.capitalize(), price = price, cheapest_price = nofrills_items[i].cheapest_price))
             continue
         else:
             pass
-    print("This item is not on sale: " + nofrills_items_randomized[i].search)
+    print("This item is not on sale: " + nofrills_items[i].search)
     print("Moving on to the next item...")
     continue
 
