@@ -71,7 +71,8 @@ condensed_milk = Item("condensed milk", "Brand Sweetened Condensed Milk", 3.00, 
 chicken_korma = Item("chicken korma", "President's Choice", 4.00, 3.49)
 annies_crackers = Item("annies crackers", "White Cheddar", 4.00, 3.49)
 
-superstore_items = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma, annies_crackers]
+# superstore_items = [lentils, peas, oats, peanut_butter, condensed_milk, chicken_korma, annies_crackers]
+superstore_items = [peanut_butter, oats, peas]
 
 # randomizing array to randomize search order (human behaviour)
 random.shuffle(superstore_items)
@@ -110,9 +111,16 @@ for i in range(len(superstore_items)):
     desired_item = superstore_items[i].desired_item
     search_results = driver.find_elements(By.TAG_NAME, "h3")
 
-    for item in search_results:
-        if desired_item in item.text:
-            desired_item_div = item
+    for result in search_results:
+        if desired_item in result.text:
+            desired_item_div = result
+            break
+        else:
+            desired_item_div = None
+    
+    if desired_item_div == None:
+        print("{Item} not found in the search results. Moving on to the next item...".format(Item = superstore_items[i].search))
+        continue  
 
     # check if the desired item is on sale 
     # note: we assume a Superstore item is on sale IFF its badge div contains text
