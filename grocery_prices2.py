@@ -67,15 +67,15 @@ driver.maximize_window() # human behaviour
 driver.get(superstore_url)
 stall()
 
-for i in range(len(superstore_items)):
+for item in superstore_items:
     # close modals:
     #
 
     # define variables, as specified in Step 1
-    search = superstore_items[i][0]
-    desired_item = superstore_items[i][1]
-    max_buy_price = float(superstore_items[i][2])
-    cheapest_price = float(superstore_items[i][3])
+    search = item[0]
+    desired_item = item[1]
+    max_buy_price = float(item[2])
+    cheapest_price = float(item[3])
 
     # engage with search bar
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
@@ -97,6 +97,7 @@ for i in range(len(superstore_items)):
     
     if desired_item_div == None:
         print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
+        stall()
         continue  
 
     # check if the desired item is on sale 
@@ -119,7 +120,8 @@ for i in range(len(superstore_items)):
 
         # compare the price to the max_buy_price
         if (price <= max_buy_price):
-            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = search.capitalize(), price = price, cheapest_price = cheapest_price))
+            # print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = search.capitalize(), price = price, cheapest_price = cheapest_price))
+            print("{item} is on sale! Adding to the Shopping List...".format(item = search.capitalize()))
             continue
         else:
             pass
@@ -134,15 +136,15 @@ nofrills_url = "https://www.nofrills.ca/"
 driver.get(nofrills_url)
 stall()
 
-for i in range(len(nofrills_items)):
+for item in nofrills_items:
     # close modals:
     #
 
     # define variables, as specified in Step 1
-    search = nofrills_items[i][0]
-    desired_item = nofrills_items[i][1]
-    max_buy_price = float(nofrills_items[i][2])
-    cheapest_price = float(nofrills_items[i][3])
+    search = item[0]
+    desired_item = item[1]
+    max_buy_price = float(item[2])
+    cheapest_price = float(item[3])
 
     # engage with search bar
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
@@ -164,6 +166,7 @@ for i in range(len(nofrills_items)):
     
     if desired_item_div == None:
         print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
+        stall()
         continue  
 
     # check if the desired item is on sale 
@@ -191,10 +194,12 @@ for i in range(len(nofrills_items)):
 
         # compare the price to the max_buy_price
         if (price <= max_buy_price):
-            print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = search.capitalize(), price = price, cheapest_price = cheapest_price))
+            # print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = search.capitalize(), price = price, cheapest_price = cheapest_price))
+            print("{item} is on sale! Adding to the Shopping List...".format(item = search.capitalize()))
             continue
         else:
             pass
     print("This item is not on sale: " + search + ". Moving on to the next item...")
 
 driver.quit()
+
