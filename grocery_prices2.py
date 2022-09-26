@@ -57,7 +57,7 @@ shopping_list = []
 # Step 1: Import the Grocery Database from Google Sheets into a CSV list, superstore_items.
 # each item in superstore_items contains the following values:
 # item[0] = item_url
-# item[1] = item
+# item[1] = item_name
 # item[2] = search
 # item[3] = search_filter
 # item[4] = regular_price
@@ -80,11 +80,14 @@ for item in superstore_items:
 
     # define variables, as specified in Step 1
     item_url = item[0]
+    item_name = item[1]
     search = item[2]
     search_filter = item[3]
     regular_price = item[4]
     max_buy_price = float(item[5])
-    cheapest_price = float(item[6])
+    cheapest_price = item[6]
+    if (cheapest_price):
+        cheapest_price = float(item[6])
 
     # engage with search bar
     search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
@@ -97,19 +100,21 @@ for item in superstore_items:
     # find the div of the desired item from search results
     search_results = driver.find_elements(By.TAG_NAME, "h3")
 
-    for result in search_results:
-        if search_filter in result.text:
-            filtered_item_div = result
-            print("Filtered_item_div found!: " + result.text)
+    # combing through too many search results may match an unrelated item that happens to share the search_filter
+    search_cap = 8
+    i = 0
+    filtered_item_div = None
+    while (i < search_cap):
+        if search_filter in search_results[i].text: 
+            filtered_item_div = search_results[i]
             break
         else:
-            filtered_item_div = ""
-            print("Filtered_item_div NOT found!")
-    
-    if (not filtered_item_div):
+            i += 1
+
+    if (filtered_item_div == None):
         print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
         stall()
-        continue  
+        continue
 
    # if the item_url wasn't inputted, set it (may be useful to user, but annoying for the user to input themselves)
     if (not item_url):
