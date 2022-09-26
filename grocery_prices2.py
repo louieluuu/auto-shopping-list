@@ -100,11 +100,13 @@ for item in superstore_items:
     for result in search_results:
         if search_filter in result.text:
             filtered_item_div = result
+            print("Filtered_item_div found!: " + result.text)
             break
         else:
-            filtered_item_div = None
+            filtered_item_div = ""
+            print("Filtered_item_div NOT found!")
     
-    if filtered_item_div == None:
+    if (not filtered_item_div):
         print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
         stall()
         continue  
@@ -122,8 +124,8 @@ for item in superstore_items:
         item[0] = url
 
     badge_div = filtered_item_div.find_element(By.XPATH, "./following-sibling::div/div[1]") # redundant/out of place
-    # if the regular price wasn't inputted AND it's not on sale, set the regular price
-    if (not regular_price and not badge_div.text):
+    # if the item is not on sale, update the regular price weekly
+    if (not badge_div.text):
         regular_price_div = filtered_item_div.find_element(By.XPATH, "./following-sibling::div")
         regular_price = regular_price_div.find_element(By.CSS_SELECTOR, ".price__value.selling-price-list__item__price.selling-price-list__item__price--now-price__value")
         regular_price = float((regular_price.text.replace("$", "")))
@@ -151,13 +153,14 @@ for item in superstore_items:
             price = price.replace("$", "")
             price = float ( format( ( float(price)/float(price_array[0]) ), ".2f" ) ) # formatting necessary due to price sometimes being 1 decimal place
         stall()
-            
+        
         # compare the price to the max_buy_price
         if (price <= max_buy_price):
             print("{item} is on sale! Adding to the Shopping List...".format(item = search.capitalize()))
-            item.append(price) # saving the price so we can access it later
-            # also, if the price is the cheapest yet seen...
-            if (price < cheapest_price):
+            item.append(price) # saving the price so we can access it later as current_price
+
+            # if the cheapest price wasn't inputted, OR price is the cheapest yet seen...
+            if (not cheapest_price or price < cheapest_price):
                 # update the database
                 item_cell = superstore_worksheet.find(search)
                 cheapest_price_cell = "G" + str(item_cell.row)
@@ -204,8 +207,8 @@ for item in shopping_list:
     shopping_sheet.append_row(new_row)
 
 # format the spreadsheet
-shopping_sheet.format([shopping_titles], {"textFormat": {"bold": True}})
-shopping_sheet.columns_auto_resize(0, 4)
+shopping_sheet.columns_auto_resize(1, 4) # exclude the URL to keep it small
+shopping_sheet.format([shopping_titles], {"textFormat": {"fontSize": 10, "bold": True}})
 
 driver.quit()
 quit()
