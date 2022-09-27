@@ -19,6 +19,7 @@ import urllib.robotparser
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 # for delaying program execution
 from time import sleep
@@ -40,9 +41,8 @@ scope = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis
 credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(credentials)
 database = client.open("Grocery Database")
-superstore_worksheet = database.worksheet("Superstore")
+store = database.worksheet("Superstore")
 database_range = "A2:G"
-nofrills_worksheet = database.worksheet("No Frills")
 
 # setting up webdriver
 PATH = "C:\Program Files (x86)\chromedriver.exe"
@@ -51,7 +51,6 @@ driver.implicitly_wait(5) # if element is not found on the page due to loading,
                           # driver will wait until element has loaded, up to a max of 5 secs
 
 new_tab = "chrome://newtab"
-superstore_url = "https://www.realcanadiansuperstore.ca/"
 shopping_list = []
 
 # Step 1: Import the Grocery Database from Google Sheets into a CSV list, superstore_items.
@@ -66,15 +65,44 @@ shopping_list = []
 
 ######################### SUPERSTORE ################################
 
-superstore_items = superstore_worksheet.get_values(database_range)
-random.shuffle(superstore_items) # human behaviour: randomize search order
+global filtered_item
+filtered_item = None
 
-driver.get(new_tab)
-driver.maximize_window() # human behaviour
-driver.get(superstore_url)
-stall()
+items = store.get_values(database_range)
+random.shuffle(items) # human behaviour: randomize search order
 
-for item in superstore_items:
+class Superstore():
+    url = "https://www.realcanadiansuperstore.ca/"
+    def search_bar():
+        search_bar = driver.find_element(By.CLASS_NAME, "search-input__input")
+        return search_bar
+
+    def search_results():
+        search_results = driver.find_elements(By.CLASS_NAME, "product-tile__details__info")
+        return search_results
+
+    def badge():
+        badge = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__icon.product-badge__icon--limit.product-badge__icon--product-tile")
+        return badge
+
+    def sale_price():
+        try:    
+            sale_price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text
+        except NoSuchElementException:
+            sale_price = ""
+        return sale_price
+
+    def regular_price():
+        regular_price = filtered_item.find_element(By.CSS_SELECTOR, ".selling-price-list.selling-price-list--product-tile").text
+        return regular_price
+
+
+# driver.get(new_tab)
+# driver.maximize_window() # human behaviour
+# driver.get(Superstore.url)
+# stall()
+
+for item in items:
     # close modals:
     #
 
@@ -85,99 +113,109 @@ for item in superstore_items:
     search_filter = item[3]
     regular_price = item[4]
     max_buy_price = float(item[5])
-    cheapest_price = item[6]
-    if (cheapest_price):
-        cheapest_price = float(item[6])
+    # weirdly, if you have 0 cheapest_prices inputted, the empty column isn't counted
+    # and an IndexError is thrown. Not sure why this doesn't happen with regular_prices.
+    try:
+        cheapest_price = item[6]
+    except IndexError:
+        cheapest_price = "bug bug bug bug bug bug weeeee"
+    
+    print(item)
+
+    driver.quit()
+    quit()
+    
 
     # engage with search bar
-    search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
+    search_bar = Superstore.search_bar()
     search_bar.click()
     search_bar.clear()
     search_bar.send_keys(search)
     stall()
     search_bar.send_keys(Keys.RETURN)
 
-    # find the div of the desired item from search results
-    search_results = driver.find_elements(By.TAG_NAME, "h3")
+    # all search results
+    search_results = Superstore.search_results()
 
     # combing through too many search results may match an unrelated item that happens to share the search_filter
     search_cap = 8
     i = 0
-    filtered_item_div = None
     while (i < search_cap):
         if search_filter in search_results[i].text: 
-            filtered_item_div = search_results[i]
+            filtered_item = search_results[i]
             break
         else:
             i += 1
 
-    if (filtered_item_div == None):
-        print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
+    if (filtered_item == None):
+        print(f"{search.upper()} not found in the search results. Moving on to the next item...")
         stall()
         continue
 
-   # if the item_url wasn't inputted, set it (may be useful to user, but annoying for the user to input themselves)
-    if (not item_url):
-        url = filtered_item_div.find_element(By.TAG_NAME, "a").get_attribute("href")
+##### URL LOGIC: WIP #####    
+
+#    # if the item_url wasn't inputted, set it (may be useful to user, but annoying for the user to input themselves)
+#     if (not item_url):
+        
+
+#         # update the database
+#         item_cell = store.find(search)
+#         url_cell = "A" + str(item_cell.row)
+#         store.update(url_cell, url)
+
+#         # update the item
+#         item[0] = url
+
+    price = Superstore.sale_price()
+    print("This is the price text: " + price)
+
+    if ("LIMIT" in price):
+        # ex. format: $4.29 LIMIT 4
+        price_array = price.split()
+        price = float(price_array[0].replace("$", ""))
+
+    elif ("FOR" in price):
+        # ex. format: 2 FOR $9.00
+        price_array = price.split()
+        divisor = float(price_array[0])
+        price = float(price_array[2].replace("$", ""))
+        price = float(f"{(price/divisor):.2f}")
+
+    elif (price == ""): # item is not on sale: update the regular price
+        regular_price = Superstore.regular_price()
+        # ex. formats: $6.69ea, $11.49c01
+        regular_price = regular_price.replace("$", "")
+        regular_price = float(regular_price[0:regular_price.index(".")+3])
+        print(regular_price)
 
         # update the database
-        item_cell = superstore_worksheet.find(search)
-        url_cell = "A" + str(item_cell.row)
-        superstore_worksheet.update(url_cell, url)
-
-        # update the item
-        item[0] = url
-
-    badge_div = filtered_item_div.find_element(By.XPATH, "./following-sibling::div/div[1]") # redundant/out of place
-    # if the item is not on sale, update the regular price weekly
-    if (not badge_div.text):
-        regular_price_div = filtered_item_div.find_element(By.XPATH, "./following-sibling::div")
-        regular_price = regular_price_div.find_element(By.CSS_SELECTOR, ".price__value.selling-price-list__item__price.selling-price-list__item__price--now-price__value")
-        regular_price = float((regular_price.text.replace("$", "")))
-
-        # update the database
-        item_cell = superstore_worksheet.find(search)
+        item_cell = store.find(search)
         regular_price_cell = "E" + str(item_cell.row)
-        superstore_worksheet.update(regular_price_cell, regular_price)
+        store.update(regular_price_cell, regular_price)
 
         # update the item
         item[4] = regular_price
-
-    # check if the desired item is on sale 
-    # note: we assume a Superstore item is on sale IFF its badge div contains text
-    price_div = filtered_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
-    if (badge_div.text): # IFF
-        # get the price
-        if ("LIMIT" in badge_div.text): # limit format: "$4.29 LIMIT 4"
-            price_array = price_div.text.split()
-            price = price_array[0]
-            price = float((price.replace("$", "")))
-        elif ("MULTI" in badge_div.text): # multi format: "2 FOR $7.00"
-            price_array = price_div.text.split()
-            price = price_array[2]
-            price = price.replace("$", "")
-            price = float ( format( ( float(price)/float(price_array[0]) ), ".2f" ) ) # formatting necessary due to price sometimes being 1 decimal place
-        stall()
+        print(f"{search.upper()} is not on sale. Moving on to the next item...")
         
-        # compare the price to the max_buy_price
-        if (price <= max_buy_price):
-            print("{item} is on sale! Adding to the Shopping List...".format(item = search.capitalize()))
-            item.append(price) # saving the price so we can access it later as current_price
+    # compare the price to the max_buy_price
+    if (price != "" and price <= max_buy_price):
+        print(f"{search.upper()} is on sale! Adding to the Shopping List...")
+        item.append(price) # saving the price so we can access it later as current_price
+    
+        # if the cheapest price wasn't inputted, OR price is the cheapest yet seen...
+        if (cheapest_price == "" or price < cheapest_price):
+            # update the database
+            item_cell = store.find(search)
+            cheapest_price_cell = "G" + str(item_cell.row)
+            store.update(cheapest_price_cell, price)
+            # update the item
+            item[6] = price
 
-            # if the cheapest price wasn't inputted, OR price is the cheapest yet seen...
-            if (not cheapest_price or price < cheapest_price):
-                # update the database
-                item_cell = superstore_worksheet.find(search)
-                cheapest_price_cell = "G" + str(item_cell.row)
-                superstore_worksheet.update(cheapest_price_cell, price)
-                # update the item
-                item[6] = price
-            shopping_list.append(item)
-            continue
-        else:
-            pass
+        shopping_list.append(item)
 
-    print("This item is not on sale: " + search + ". Moving on to the next item...")
+    stall()
+    # reset filtered_item
+    filtered_item = None 
 
 # SHOPPING LIST LOGIC #
 try: 
@@ -191,7 +229,7 @@ except gspread.exceptions.SpreadsheetNotFound:
 shopping_titles = "A1:E1"
 shopping_sheet.update(shopping_titles, [["URL", "Item", "Regular Price", "Current Price", "Cheapest Price"]])
 
-# each item in superstore_items contains the following values:
+# each item contains the following values:
 # item[0] = URL
 # item[1] = item
 # item[2] = search
@@ -200,6 +238,8 @@ shopping_sheet.update(shopping_titles, [["URL", "Item", "Regular Price", "Curren
 # item[5] = max_buy_price
 # item[6] = cheapest_price
 # item[7] = current_price (appended earlier)
+
+print(item)
 
 # append the sale items
 for item in shopping_list:
