@@ -32,6 +32,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 # for handling data
 import pandas as pd
 
+# importing stores
+# from stores import Superstore
+
 # human behaviour: stall program execution to simulate web-surfing  
 def stall():
     sleep(random.randint(3,7))
@@ -45,7 +48,7 @@ store = database.worksheet("Superstore")
 database_range = "A2:G"
 
 # setting up webdriver
-PATH = "C:\Program Files (x86)\chromedriver.exe"
+PATH = "D:\Programming\Projects\selenium-groceries\chromedriver.exe"
 driver = webdriver.Chrome(PATH)
 driver.implicitly_wait(5) # if element is not found on the page due to loading, 
                           # driver will wait until element has loaded, up to a max of 5 secs
@@ -62,14 +65,6 @@ shopping_list = []
 # item[4] = regular_price
 # item[5] = max_buy_price
 # item[6] = cheapest_price
-
-######################### SUPERSTORE ################################
-
-global filtered_item
-filtered_item = None
-
-items = store.get_values(database_range)
-random.shuffle(items) # human behaviour: randomize search order
 
 class Superstore():
     url = "https://www.realcanadiansuperstore.ca/"
@@ -97,10 +92,20 @@ class Superstore():
         return regular_price
 
 
-# driver.get(new_tab)
-# driver.maximize_window() # human behaviour
-# driver.get(Superstore.url)
-# stall()
+
+
+######################### SUPERSTORE ################################
+
+global filtered_item
+filtered_item = None
+
+items = store.get_values(database_range)
+random.shuffle(items) # human behaviour: randomize search order
+
+driver.get(new_tab)
+driver.maximize_window() # human behaviour
+driver.get(Superstore.url)
+stall()
 
 for item in items:
     # close modals:
@@ -113,20 +118,16 @@ for item in items:
     search_filter = item[3]
     regular_price = item[4]
     max_buy_price = float(item[5])
-    # weirdly, if you have 0 cheapest_prices inputted, the empty column isn't counted
-    # and an IndexError is thrown. Not sure why this doesn't happen with regular_prices.
+    
+    # this try except block is necessary to cover the case where
+    # all initial cheapest_price fields are set to nothing.
     try:
         cheapest_price = item[6]
     except IndexError:
-        cheapest_price = "bug bug bug bug bug bug weeeee"
-    
-    print(item)
+        item.append("")
+        cheapest_price = ""
 
-    driver.quit()
-    quit()
-    
-
-    # engage with search bar
+    # Step 1: Engage with search bar
     search_bar = Superstore.search_bar()
     search_bar.click()
     search_bar.clear()
@@ -134,13 +135,13 @@ for item in items:
     stall()
     search_bar.send_keys(Keys.RETURN)
 
-    # all search results
+    # Step 2: Filter desired item from search results
+    # combing through too many search results may match an unrelated item that happens to share the search_filter.
+    # therefore, introduce a search cap.
     search_results = Superstore.search_results()
-
-    # combing through too many search results may match an unrelated item that happens to share the search_filter
     search_cap = 8
     i = 0
-    while (i < search_cap):
+    while i < min(len(search_results), search_cap):
         if search_filter in search_results[i].text: 
             filtered_item = search_results[i]
             break
@@ -152,23 +153,8 @@ for item in items:
         stall()
         continue
 
-##### URL LOGIC: WIP #####    
-
-#    # if the item_url wasn't inputted, set it (may be useful to user, but annoying for the user to input themselves)
-#     if (not item_url):
-        
-
-#         # update the database
-#         item_cell = store.find(search)
-#         url_cell = "A" + str(item_cell.row)
-#         store.update(url_cell, url)
-
-#         # update the item
-#         item[0] = url
-
+    # Step 3: Determine if the filtered item is on sale.
     price = Superstore.sale_price()
-    print("This is the price text: " + price)
-
     if ("LIMIT" in price):
         # ex. format: $4.29 LIMIT 4
         price_array = price.split()
@@ -186,7 +172,6 @@ for item in items:
         # ex. formats: $6.69ea, $11.49c01
         regular_price = regular_price.replace("$", "")
         regular_price = float(regular_price[0:regular_price.index(".")+3])
-        print(regular_price)
 
         # update the database
         item_cell = store.find(search)
@@ -195,13 +180,15 @@ for item in items:
 
         # update the item
         item[4] = regular_price
+
         print(f"{search.upper()} is not on sale. Moving on to the next item...")
+        continue
         
-    # compare the price to the max_buy_price
-    if (price != "" and price <= max_buy_price):
+    # Step 4: Compare the price to the max_buy_price.
+    if (price <= max_buy_price):
         print(f"{search.upper()} is on sale! Adding to the Shopping List...")
         item.append(price) # saving the price so we can access it later as current_price
-    
+
         # if the cheapest price wasn't inputted, OR price is the cheapest yet seen...
         if (cheapest_price == "" or price < cheapest_price):
             # update the database
@@ -212,6 +199,10 @@ for item in items:
             item[6] = price
 
         shopping_list.append(item)
+
+    elif (price > max_buy_price):
+        print(f"{search.upper()} is on sale, but still too expensive to buy. Moving on to the next item...")
+        continue
 
     stall()
     # reset filtered_item
@@ -238,8 +229,6 @@ shopping_sheet.update(shopping_titles, [["URL", "Item", "Regular Price", "Curren
 # item[5] = max_buy_price
 # item[6] = cheapest_price
 # item[7] = current_price (appended earlier)
-
-print(item)
 
 # append the sale items
 for item in shopping_list:
