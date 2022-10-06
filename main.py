@@ -96,9 +96,6 @@ class Superstore():
 
 ######################### SUPERSTORE ################################
 
-global filtered_item
-filtered_item = None
-
 items = store.get_values(database_range)
 random.shuffle(items) # human behaviour: randomize search order
 
@@ -119,12 +116,14 @@ for item in items:
     regular_price = item[4]
     max_buy_price = float(item[5])
 
-    # this try except block is necessary to cover the case where
-    # all initial cheapest_price fields are set to nothing.
+    # this try except block is necessary to cover some strange behaviour that occurs when
+    # all initial cheapest_price (last column) fields are set to nothing.
     try:
-        cheapest_price = item[6]
+        cheapest_price = float(item[6])
     except IndexError:
         item.append("")
+        cheapest_price = ""
+    except ValueError:
         cheapest_price = ""
 
     # Step 1: Engage with search bar
@@ -138,6 +137,7 @@ for item in items:
     # Step 2: Filter desired item from search results
     # combing through too many search results may match an unrelated item that happens to share the search_filter.
     # therefore, introduce a search cap.
+    filtered_item = None
     search_results = Superstore.search_results()
     search_cap = 8
     i = 0
@@ -190,7 +190,7 @@ for item in items:
         item.append(price) # saving the price so we can access it later as current_price
 
         # if the cheapest price wasn't inputted, OR price is the cheapest yet seen...
-        if (cheapest_price == "" or price < cheapest_price):
+        if (cheapest_price == "") or (price < cheapest_price):
             # update the database
             item_cell = store.find(search)
             cheapest_price_cell = "G" + str(item_cell.row)
@@ -205,8 +205,6 @@ for item in items:
         continue
 
     stall()
-    # reset filtered_item
-    filtered_item = None 
 
 # SHOPPING LIST LOGIC #
 try: 
