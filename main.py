@@ -49,12 +49,8 @@ database_range = "A2:G"
 
 # setting up webdriver
 PATH = "D:\Programming\Projects\selenium-groceries\chromedriver.exe"
-driver = webdriver.Chrome(PATH)
-driver.implicitly_wait(5) # if element is not found on the page due to loading, 
-                          # driver will wait until element has loaded, up to a max of 5 secs
 
 new_tab = "chrome://newtab"
-shopping_list = []
 stores = []
 for worksheet in database.worksheets():
     stores.append(worksheet.title)
@@ -63,30 +59,30 @@ for worksheet in database.worksheets():
 
 class Superstore():
     url = "https://www.realcanadiansuperstore.ca/"
-    def search_bar() -> WebElement:
+    def search_bar(driver) -> WebElement:
         return driver.find_element(By.CLASS_NAME, "search-input__input")
 
-    def search_results() -> list[WebElement]:
+    def search_results(driver) -> list[WebElement]:
         return driver.find_elements(By.CLASS_NAME, "product-tile__details__info")
 
     def is_sale(filtered_item: WebElement) -> bool:
         # checks for presence of a "badge", which indicates sale
-        try:    
-            filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__icon.product-badge__icon--limit.product-badge__icon--product-tile")
+        badge_text = filtered_item.find_element(By.CLASS_NAME, "product-tile-deal-badge").text
+        if badge_text:
             print("Badge found!")
             return True
-        except NoSuchElementException:
+        else:
             print("Badge not found.")
             return False
 
     def parse_price(filtered_item: WebElement) -> float:
         try:
-            price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text
-            if ("LIMIT" in price):
+            price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text.lower()
+            if ("limit" in price):
                 # ex. format: $4.29 LIMIT 4
                 price_array = price.split()
                 price = float(price_array[0].replace("$", ""))
-            elif ("FOR" in price):
+            elif ("for" in price):
                 # ex. format: 2 FOR $9.00
                 price_array = price.split()
                 divisor = float(price_array[0])
@@ -99,13 +95,56 @@ class Superstore():
 
     def regular_price(filtered_item: WebElement) -> float:
         regular_price = filtered_item.find_element(By.CSS_SELECTOR, ".selling-price-list.selling-price-list--product-tile").text
+        # ex. formats: $6.69ea, $11.49c01
+        regular_price = regular_price.replace("$", "")
+        regular_price = float(regular_price[0:regular_price.index(".")+3])
+        return regular_price
+
+############## CLASS NO FRILLS ##################
+
+class NoFrills():
+    url = "https://www.nofrills.ca/"
+    def search_bar(driver) -> WebElement:
+        return driver.find_element(By.CLASS_NAME, "search-input__input")
+
+    def search_results(driver) -> list[WebElement]:
+        return driver.find_elements(By.CLASS_NAME, "product-tile__details__info")
+
+    def is_sale(filtered_item: WebElement) -> bool:
+        # checks for presence of a "badge", which indicates sale
+        badge_text = filtered_item.find_element(By.CLASS_NAME, "product-tile-deal-badge").text
+        if badge_text:
+            print("Badge found!")
+            return True
+        else:
+            print("Badge not found.")
+            return False
+
+    def parse_price(filtered_item: WebElement) -> float:
+        try:
+            price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text.lower()
+            if ("min" in price or "max" in price): # format: "$4.29 MAX 4 / $5.00 MIN 2"
+                price_array = price.split()
+                price = price_array[0]
+                price = float(price.replace("$", ""))
+            elif ("save" in price):
+                price = filtered_item.find_element(By.CSS_SELECTOR, ".price__value.selling-price-list__item__price.selling-price-list__item__price--now-price__value").text
+                price = float(price.replace("$", ""))
+            return price
+        except NoSuchElementException:
+            print("Sale price not found. Badge or Price selector is incorrect. Moving on to the next item...")
+            return -1
+
+    def regular_price(filtered_item: WebElement) -> float:
+        regular_price = filtered_item.find_element(By.CSS_SELECTOR, ".price__value.selling-price-list__item__price.selling-price-list__item__price--now-price__value").text
+        regular_price = float(regular_price.replace("$", ""))
         return regular_price
 
 ############ SHOPPING LIST LOGIC ##############
-def create_list():
+def create_shopping_list(sales):
     try: 
         shopping_sheet = client.open("Shopping List (Louie)").sheet1
-        shopping_sheet.clear()
+        # shopping_sheet.clear()
     except gspread.exceptions.SpreadsheetNotFound:
         shopping_sheet = client.create("Shopping List (Louie)")
         shopping_sheet.share("goldjet32@gmail.com", perm_type="user", role="writer")
@@ -126,7 +165,7 @@ def create_list():
 
     # append the sale items
 
-    for item in shopping_list:
+    for item in sales:
         url = item[0]
         item_name = item[1]
         regular_price = item[4]
@@ -149,7 +188,8 @@ def create_list():
 # item[5] = max_buy_price
 # item[6] = cheapest_price
 
-def scrape(store: str):
+def scrape(store: str) -> list:
+    sales = []
     worksheet = database.worksheet(store)
     items = worksheet.get_values(database_range)
     random.shuffle(items) # human behaviour
@@ -157,10 +197,12 @@ def scrape(store: str):
     # Get the Class associated with the string
     store = getattr(modules[__name__], store)
 
+    driver = webdriver.Chrome(PATH)
+    driver.implicitly_wait(5)
     driver.get(new_tab)
     driver.maximize_window() # human behaviour
-    driver.get(store.url)
     stall()
+    driver.get(store.url)
 
     for item in items:
         # close modals:
@@ -185,9 +227,10 @@ def scrape(store: str):
             cheapest_price = ""
 
         # Step 1: Engage with search bar
-        search_bar = store.search_bar()
+        search_bar = store.search_bar(driver)
         search_bar.click()
         search_bar.clear()
+        stall()
         search_bar.send_keys(search)
         stall()
         search_bar.send_keys(Keys.RETURN)
@@ -196,7 +239,7 @@ def scrape(store: str):
         # combing through too many search results may match an unrelated item that happens to share the search_filter.
         # therefore, introduce a search cap.
         filtered_item = None
-        search_results = store.search_results()
+        search_results = store.search_results(driver)
         search_cap = 8
         i = 0
         while i < min(len(search_results), search_cap):
@@ -218,9 +261,6 @@ def scrape(store: str):
                 continue
         else: # item is not on sale: update regular price
             regular_price = store.regular_price(filtered_item)
-            # ex. formats: $6.69ea, $11.49c01
-            regular_price = regular_price.replace("$", "")
-            regular_price = float(regular_price[0:regular_price.index(".")+3])
 
             # update the database
             item_cell = worksheet.find(search)
@@ -231,6 +271,7 @@ def scrape(store: str):
             item[4] = regular_price
 
             print(f"{search.upper()} is not on sale. Moving on to the next item...")
+            stall()
             continue
 
         # Step 4: Compare the price to the max_buy_price.
@@ -247,20 +288,22 @@ def scrape(store: str):
                 # update the item
                 item[6] = price
 
-            shopping_list.append(item)
+            sales.append(item)
 
         elif (price > max_buy_price):
             print(f"{search.upper()} is on sale, but still too expensive to buy. Moving on to the next item...")
+            stall()
             continue
-        stall()
 
+        stall()
+    driver.quit()
+    return sales
 
 ############# MAIN #################
 def main():
     for store in stores:
-        scrape(store) #this will be multiprocessed
-        create_list()
-        driver.quit()
+        sales = scrape(store) #this will be multiprocessed
+        create_shopping_list(sales)
 
 if __name__ == "__main__":
     main()
