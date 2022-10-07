@@ -36,6 +36,9 @@ import pandas as pd
 # for getattr()
 from sys import modules
 
+# for multiprocessing
+from multiprocessing import Process
+
 # human behaviour: stall program execution to simulate web-surfing  
 def stall():
     sleep(random.randint(3,7))
@@ -300,10 +303,12 @@ def scrape(store: str) -> list:
     return sales
 
 ############# MAIN #################
-def main():
-    for store in stores:
-        sales = scrape(store) #this will be multiprocessed
-        create_shopping_list(sales)
+def main(store):
+    sales = scrape(store)
+    create_shopping_list(sales)
 
 if __name__ == "__main__":
-    main()
+    for store in stores:
+        Process(target=main, args=(store,)).start()
+
+    
