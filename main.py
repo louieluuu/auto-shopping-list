@@ -310,5 +310,3 @@ def main(store):
 if __name__ == "__main__":
     for store in stores:
         Process(target=main, args=(store,)).start()
-
-    
