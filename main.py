@@ -17,6 +17,7 @@ import urllib.robotparser
 
 # standard selenium imports
 from selenium import webdriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -62,35 +63,41 @@ for worksheet in database.worksheets():
 
 class Superstore():
     url = "https://www.realcanadiansuperstore.ca/"
-    def search_bar():
+    def search_bar() -> WebElement:
         return driver.find_element(By.CLASS_NAME, "search-input__input")
 
-    def search_results():
+    def search_results() -> list[WebElement]:
         return driver.find_elements(By.CLASS_NAME, "product-tile__details__info")
 
-    def is_sale(filtered_item):
-        # checks for presence of a badge
+    def is_sale(filtered_item: WebElement) -> bool:
+        # checks for presence of a "badge", which indicates sale
         try:    
-            filtered_item.find_element(By.CSS_SELECTOR, ".product-tile-deal-badge")
+            filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__icon.product-badge__icon--limit.product-badge__icon--product-tile")
+            print("Badge found!")
             return True
         except NoSuchElementException:
+            print("Badge not found.")
             return False
 
-    def parse_price(filtered_item):
-        price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text
-        if ("LIMIT" in price):
-            # ex. format: $4.29 LIMIT 4
-            price_array = price.split()
-            price = float(price_array[0].replace("$", ""))
-        elif ("FOR" in price):
-            # ex. format: 2 FOR $9.00
-            price_array = price.split()
-            divisor = float(price_array[0])
-            price = float(price_array[2].replace("$", ""))
-            price = float(f"{(price/divisor):.2f}")
-        return price
+    def parse_price(filtered_item: WebElement) -> float:
+        try:
+            price = filtered_item.find_element(By.CSS_SELECTOR, ".product-badge__text.product-badge__text--product-tile").text
+            if ("LIMIT" in price):
+                # ex. format: $4.29 LIMIT 4
+                price_array = price.split()
+                price = float(price_array[0].replace("$", ""))
+            elif ("FOR" in price):
+                # ex. format: 2 FOR $9.00
+                price_array = price.split()
+                divisor = float(price_array[0])
+                price = float(price_array[2].replace("$", ""))
+                price = float(f"{(price/divisor):.2f}")
+            return price
+        except NoSuchElementException:
+            print("Sale price not found. Badge or Price selector is incorrect. Moving on to the next item...")
+            return -1
 
-    def regular_price(filtered_item):
+    def regular_price(filtered_item: WebElement) -> float:
         regular_price = filtered_item.find_element(By.CSS_SELECTOR, ".selling-price-list.selling-price-list--product-tile").text
         return regular_price
 
@@ -207,7 +214,8 @@ def scrape(store: str):
         # Step 3: Determine if the filtered item is on sale.
         if store.is_sale(filtered_item):
             price = store.parse_price(filtered_item)
-
+            if price == -1:
+                continue
         else: # item is not on sale: update regular price
             regular_price = store.regular_price(filtered_item)
             # ex. formats: $6.69ea, $11.49c01
@@ -248,96 +256,11 @@ def scrape(store: str):
 
 
 ############# MAIN #################
-for store in stores:
-    scrape(store) #this will be multiprocessed
-    create_list()
+def main():
+    for store in stores:
+        scrape(store) #this will be multiprocessed
+        create_list()
+        driver.quit()
 
-driver.quit()
-quit()
-
-
-
-
-
-
-
-
-
-
-
-
-######################### NO FRILLS ################################
-
-nofrills_items = database.worksheet("No Frills").get_values("B2:E")
-random.shuffle(nofrills_items)
-
-nofrills_url = "https://www.nofrills.ca/"
-driver.get(nofrills_url)
-stall()
-
-for item in nofrills_items:
-    # close modals:
-    #
-
-    # define variables, as specified in Step 1
-    search = item[0]
-    desired_item = item[1]
-    max_buy_price = float(item[2])
-    cheapest_price = float(item[3])
-
-    # engage with search bar
-    search_bar = driver.find_element(By.CLASS_NAME, "search-input__input") 
-    search_bar.click()
-    search_bar.clear()
-    search_bar.send_keys(search)
-    stall()
-    search_bar.send_keys(Keys.RETURN)
-
-    # find the div of the desired item from search results
-    search_results = driver.find_elements(By.TAG_NAME, "h3")
-
-    for result in search_results:
-        if desired_item in result.text:
-            desired_item_div = result
-            break
-        else:
-            desired_item_div = None
-
-    if desired_item_div == None:
-        print("{Item} not found in the search results. Moving on to the next item...".format(Item = search.upper()))
-        stall()
-        continue  
-
-    # check if the desired item is on sale 
-    # note: we assume a No Frills item is on sale IFF its badge div contains text
-    badge_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[1]")
-    price_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[2]")
-    sale_price_div = desired_item_div.find_element(By.XPATH, "./following-sibling::div/div[3]")
-
-    if (badge_div.text): # IFF
-        # get the price
-        if ("LIMIT" in badge_div.text): # limit format: "$4.29 LIMIT 4"
-            price_array = price_div.text.split()
-            price = price_array[0]
-            price = float((price.replace("$", "")))
-        elif ("MULTI" in badge_div.text): # multi format: "$4.50 MIN 2"
-            price_array = price_div.text.split()
-            price = price_array[0]
-            price = float( price.replace("$", "").format(".2f") ) # formatting necessary due to price sometimes being 1 decimal place
-        elif ("SALE" in badge_div.text): # sale format: "$4.29ea$5.99ea $0.24/ 100g"
-            price_array = sale_price_div.text.split("ea")
-            price = price_array[0]
-            price = float(price.replace("$", ""))
-
-        stall()
-
-        # compare the price to the max_buy_price
-        if (price <= max_buy_price):
-            # print("{item} on sale! The price is: {price} vs the cheapest price: {cheapest_price}.".format(item = search.capitalize(), price = price, cheapest_price = cheapest_price))
-            print("{item} is on sale! Adding to the Shopping List...".format(item = search.capitalize()))
-            continue
-        else:
-            pass
-    print("This item is not on sale: " + search + ". Moving on to the next item...")
-
-driver.quit()
+if __name__ == "__main__":
+    main()
