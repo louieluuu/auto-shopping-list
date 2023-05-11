@@ -1,3 +1,8 @@
+# TODO: should be that the user only has to define the desired item, the max buying price, (and optionally the cheapest seen price).
+# annoying having to manually define search, search filter... wonder if it's automatable
+
+#TODO: venv (Conda?) -> MAR 2023 had to update Webdriver to 111 in order for program to work again lol
+
 # for testing
 from ast import Return
 from asyncio.windows_events import NULL
@@ -44,9 +49,13 @@ def stall():
     sleep(random.randint(3,7))
 
 # connecting to Google API. The variable "client" will be used to interact with Google Sheets.
-scope = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(credentials)
+### MAR 2023 - no need to declare scope and credentials separately; gspread.service_account() handles them both in one fxn!
+
+### scope = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive"]
+### credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+client = gspread.service_account(filename="D:\Programming\Projects\selenium-groceries/credentials.json")
+
+### mar 2023 client = gspread.authorize(credentials)
 database = client.open("Grocery Database")
 database_range = "A2:G"
 
@@ -62,6 +71,13 @@ for worksheet in database.worksheets():
 
 class Superstore():
     url = "https://www.realcanadiansuperstore.ca/"
+
+    # TODO: needs to be a try except block and raise a flag that says if there's a popup or not.
+    # if (popup) then popup.click().
+    # currently exiting the entire program if a popup doesn't exist.
+    def popup(driver) -> WebElement:
+        return driver.find_element(By.CLASS_NAME, "modal-dialog__content__close")
+
     def search_bar(driver) -> WebElement:
         return driver.find_element(By.CLASS_NAME, "search-input__input")
 
@@ -107,6 +123,10 @@ class Superstore():
 
 class NoFrills():
     url = "https://www.nofrills.ca/"
+
+    def popup(driver) -> WebElement:
+        return driver.find_element(By.CLASS_NAME, "modal-dialog__content__close")
+    
     def search_bar(driver) -> WebElement:
         return driver.find_element(By.CLASS_NAME, "search-input__input")
 
@@ -144,17 +164,19 @@ class NoFrills():
         return regular_price
 
 ############ SHOPPING LIST LOGIC ##############
-def create_shopping_list(sales):
+# TODO: sales type
+def create_shopping_list(sales) -> None:
     try: 
         shopping_sheet = client.open("Shopping List (Louie)").sheet1
-        # shopping_sheet.clear()
+        shopping_sheet.clear()
     except gspread.exceptions.SpreadsheetNotFound:
         shopping_sheet = client.create("Shopping List (Louie)")
         shopping_sheet.share("goldjet32@gmail.com", perm_type="user", role="writer")
         shopping_sheet = client.open("Shopping List (Louie)").sheet1
 
-    shopping_titles = "A1:E1"
-    shopping_sheet.update(shopping_titles, [["URL", "Item", "Regular Price", "Current Price", "Cheapest Price"]])
+    shopping_titles_range = "A1:E1"
+    titles = ["URL", "Item", "Regular Price", "Current Price", "Cheapest Price"]
+    shopping_sheet.update(shopping_titles_range, [titles])
 
     # each item contains the following values:
     # item[0] = URL
@@ -179,9 +201,9 @@ def create_shopping_list(sales):
 
     # format the spreadsheet
     shopping_sheet.columns_auto_resize(1, 4) # exclude the URL to keep it small
-    shopping_sheet.format([shopping_titles], {"textFormat": {"fontSize": 10, "bold": True}})
+    shopping_sheet.format([shopping_titles_range], {"textFormat": {"fontSize": 10, "bold": True}})
 
-# Step 1: Import the Grocery Database from Google Sheets into a CSV list, superstore_items.
+# Step 0: Import the Grocery Database from Google Sheets into a CSV list, superstore_items.
 # each item in superstore_items contains the following values:
 # item[0] = item_url
 # item[1] = item_name
@@ -197,7 +219,7 @@ def scrape(store: str) -> list:
     items = worksheet.get_values(database_range)
     random.shuffle(items) # human behaviour
 
-    # Get the Class associated with the string
+    # Convert the store name (str) to the corresponding Class
     store = getattr(modules[__name__], store)
 
     driver = webdriver.Chrome(PATH)
@@ -206,12 +228,17 @@ def scrape(store: str) -> list:
     driver.maximize_window() # human behaviour
     stall()
     driver.get(store.url)
+    stall()
+
+    # Eliminate any popups
+    # popup = store.popup(driver)
+    # popup.click()
 
     for item in items:
         # close modals:
         #
 
-        # define variables, as specified in Step 1
+        # define variables, as specified in Step 0
         item_url = item[0]
         item_name = item[1]
         search = item[2]
@@ -236,9 +263,10 @@ def scrape(store: str) -> list:
         stall()
         search_bar.send_keys(search)
         stall()
+
         search_bar.send_keys(Keys.RETURN)
 
-        # Step 2: Filter desired item from search results
+        # Step 2: Filter search results to extract desired item
         # combing through too many search results may match an unrelated item that happens to share the search_filter.
         # therefore, introduce a search cap.
         filtered_item = None
@@ -307,6 +335,7 @@ def main(store):
     sales = scrape(store)
     create_shopping_list(sales)
 
+# multiprocessing
 if __name__ == "__main__":
     for store in stores:
         Process(target=main, args=(store,)).start()
