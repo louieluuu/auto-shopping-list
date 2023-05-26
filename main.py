@@ -5,83 +5,61 @@
 # 2. test Selenium interactions (via Selenium's own testing framework or 'pytest')
 # 3. you can test Superstore without depending on Superstore by using libraries like 'unittest.mock' and 'pytest-mock'
 # CI/CD pipeline? test on every commit?
-# TODO: docstrings? whatever those are! (I think Michael had them)
 
-# for testing
-from ast import Return
-from asyncio.windows_events import NULL
-from cgitb import text
-from tkinter import SCROLL
-import unittest
+import random
+from time import sleep
+from sys import modules # gettatr()
+from multiprocessing import Process
 
-# for parsing robots.txt urls
-# documentation here: https://docs.python.org/3.10/library/urllib.robotparser.html
 import urllib.robotparser
 
-robots_txt_url = "https://www.nofrills.ca/robots.txt"
-rp = urllib.robotparser.RobotFileParser()
-rp.set_url(robots_txt_url)
-rp.read()
-
-delay = rp.crawl_delay("*")
-
-# standard selenium imports
 from selenium import webdriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
-# for delaying program execution
-from time import sleep
-import random
+import gspread
 
-# for reading and writing Google Sheets
-import gspread  # a separate library whose purpose is to facilitate using Google Sheets' API
-from oauth2client.service_account import ServiceAccountCredentials
+# Connect to Google Sheets API using gspread. 
+# The variable "client" will be used to interact with Google Sheets.
+credentials_path = "D:\Programming\Projects\selenium-groceries/credentials.json"
+client = gspread.service_account(filename = credentials_path)
 
-# for handling data
-import pandas as pd
-
-# for getattr()
-from sys import modules
-
-# for multiprocessing
-from multiprocessing import Process
-
-
-# human behaviour: stall program execution to simulate web-surfing
-def stall():
-    sleep(random.randint(3, 7))
-
-
-# connecting to Google API. The variable "client" will be used to interact with Google Sheets.
-### MAR 2023 - no need to declare scope and credentials separately; gspread.service_account() handles them both in one fxn!
-client = gspread.service_account(
-    filename="D:\Programming\Projects\selenium-groceries/credentials.json"
-)
-
-### mar 2023 client = gspread.authorize(credentials)
 database = client.open("Grocery Database")
 database_range = "A2:G"
 
-# setting up webdriver
-PATH = "D:\Programming\Projects\selenium-groceries\chromedriver.exe"
-
-new_tab = "chrome://newtab"
 stores = []
 for worksheet in database.worksheets():
     stores.append(worksheet.title)
 
-############### CLASS SUPERSTORE ####################
+# Helper functions
+def parse_robots_txt(store) -> (str | None):
+    """
+    Return website crawl delay from robots.txt (if any).
+    """
+    robots_txt_url = store.url + "robots.txt"
+    rp = urllib.robotparser.RobotFileParser()
+    rp.set_url(robots_txt_url)
+    rp.read()
 
+    delay = rp.crawl_delay("*")
+    return delay
+
+def stall(delay: str) -> None:
+    """
+    Stall webdriver execution to conform with robots.txt.
+    """
+    if delay:
+        sleep(int(delay))
+    else:
+        sleep(random.randint(3, 7))
+
+############### CLASS SUPERSTORE ####################
 
 class Superstore:
     url = "https://www.realcanadiansuperstore.ca/"
 
-    # TODO: needs to be a try except block and raise a flag that says if there's a popup or not.
-    # if (popup) then popup.click().
-    # currently exiting the entire program if a popup doesn't exist.
     def popup(driver) -> WebElement:
         return driver.find_element(By.CLASS_NAME, "modal-dialog__content__close")
 
@@ -137,7 +115,6 @@ class Superstore:
 
 
 ############## CLASS NO FRILLS ##################
-
 
 class NoFrills:
     url = "https://www.nofrills.ca/"
@@ -258,22 +235,26 @@ def scrape(store: str) -> list:
     # Convert the store name (str) to the corresponding Class
     store = getattr(modules[__name__], store)
 
+    new_tab = "chrome://newtab"
+    WEBDRIVER_PATH = "D:\Programming\Projects\selenium-groceries\chromedriver.exe"
+    delay = parse_robots_txt(store)
+
     # Context manager ('with') will automatically handle quitting
     # A context manager has the attrs __enter__ and __exit__, so
     # to confirm that driver is a context manager, use hasattr(driver, '__exit__')
-    with webdriver.Chrome(PATH) as driver:
+    with webdriver.Chrome(WEBDRIVER_PATH) as driver:
         driver.implicitly_wait(5)
         driver.get(new_tab)
         driver.maximize_window()  # human behaviour
-        stall()
+        stall(delay)
         driver.get(store.url)
-        stall()
+        stall(delay)
 
         # Eliminate any popups
         try:
             popup = store.popup(driver)
             popup.click()
-        except:
+        except NoSuchElementException:
             pass
 
         for item in items:
@@ -299,9 +280,9 @@ def scrape(store: str) -> list:
             search_bar = store.search_bar(driver)
             search_bar.click()
             search_bar.clear()
-            stall()
+            stall(delay)
             search_bar.send_keys(search)
-            stall()
+            stall(delay)
 
             search_bar.send_keys(Keys.RETURN)
 
@@ -323,7 +304,7 @@ def scrape(store: str) -> list:
                 print(
                     f"{search.upper()} not found in the search results. Moving on to the next item..."
                 )
-                stall()
+                stall(delay)
                 continue
 
             # Step 3: Determine if the filtered item is on sale.
@@ -343,7 +324,7 @@ def scrape(store: str) -> list:
                 item[4] = regular_price
 
                 print(f"{search.upper()} is not on sale. Moving on to the next item...")
-                stall()
+                stall(delay)
                 continue
 
             # Step 4: Compare the price to the max_buy_price.
@@ -368,9 +349,9 @@ def scrape(store: str) -> list:
                 print(
                     f"{search.upper()} is on sale, but still too expensive to buy. Moving on to the next item..."
                 )
-                stall()
+                stall(delay)
                 continue
-            stall()
+            stall(delay)
         return sales
 
 
