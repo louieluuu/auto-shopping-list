@@ -1,7 +1,14 @@
-# selenium-groceries
+# Auto Shopping List
 
-Grocery Database
-https://docs.google.com/spreadsheets/d/1TW3lLclOH-Tyc66_IucMCHyeZ0mMOkwdNTEFdlExCB4/edit#gid=0
+Auto Shopping List is an automation script that web scrapes prices, stores them in a database, and e-mails sales to the user. Upon initialization, the database retains price history of the items you specify, and can be used in a fashion similar to [camelcamelcamel](https://www.camelcamelcamel.ca/).
 
-Shopping List (Louie)
-https://docs.google.com/spreadsheets/d/1V7eoOZJUoXYsWC_aJHT_fkIL-uueQI2MOZcATR1CRc8/edit#gid=0
+Built with Python, Selenium, and SQLite.
+
+## Features
+
+- **Modular**: supports multiple websites through OOP-like design
+- **Multiprocessing**: scrapes multiple stores simultaneously
+
+## Database Schema
+
+to be uploaded

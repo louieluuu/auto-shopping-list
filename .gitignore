@@ -1,0 +1,17 @@
+# Pycache
+*.pyc
+
+# Environments
+.env
+
+# Other users don't need these files
+test.py
+prices.db
+
+chromedriver.exe
+
+sqldiff.exe
+sqlite3_analyzer.exe
+sqlite3.def
+sqlite3.dll
+sqlite3.exe
