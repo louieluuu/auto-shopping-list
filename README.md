@@ -10,7 +10,5 @@ Built with Python, Selenium, and SQLite.
 - **Multiprocessing**: scrapes multiple stores simultaneously
 
 ## Database Schema
-
-![ER Diagram drawio](https://github.com/louieluuu/auto-shopping-list/assets/112336312/52189764-93df-4543-ae9a-f0bde4af5895)
-
+### ER Diagram
 ![ER Diagram drawio](https://github.com/louieluuu/auto-shopping-list/assets/112336312/0acb1f49-3440-4df7-8ecf-8ee48e8c8358)
