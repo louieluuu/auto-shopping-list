@@ -1,18 +1,25 @@
+import os
+import yaml
+
 from multiprocessing import Process, Manager
 
 from database import connect_to_db
+from database import create_db
 from database import retrieve_stores
 from database import insert_price_history
 from database import retrieve_avg_price
 from database import retrieve_avg_sale_price
+
 from scrape import scrape
-from mail import send_email
+# from mail import send_email
 
 
 def main(store: str, shopping_dict: dict) -> None:
     if store in shopping_dict:
-        print("ERROR: Why is this store already in the shopping_dict? wat")
-    shopping_dict[store] = []
+        print("ERROR: Why is this store already in the shopping_dict?")
+        exit(-1)
+
+    sales = []
 
     connection = connect_to_db("prices.db")
 
@@ -26,16 +33,16 @@ def main(store: str, shopping_dict: dict) -> None:
         # Step 3. Calculate the average price of each item
         for datum in price_data:
             # each price_datum is a tuple of form (price, is_sale, product_url)
-            price = datum[0]
-            is_sale = datum[1]
-            product_url = datum[2]
-
+            (price, is_sale, product_url) = datum
             avg_price = retrieve_avg_price(connection, product_url)
 
-            # Step 4. Add worthy entries to the shopping list
+            # Step 4. Add worthy entries to the sales list
             if price < avg_price:
                 entry = (product_url, price)
-                shopping_dict[store].append(entry)
+                sales.append(entry)
+
+        # Step 5. Update the shopping_dict with the sales
+        shopping_dict[store] = sales
 
     # connection context manager doesn't automatically close, so...
     connection.close()
@@ -65,37 +72,41 @@ if __name__ == "__main__":
     # TODO: If config.yaml has been modified, update the database
     # ...
 
+    connection = connect_to_db("prices.db")
+
+    stores = retrieve_stores(connection)
+
+    connection.close()
+
     ##############################
     #       Multiprocessing      #
     ##############################
     processes = []
     shopping_list = []
-    stores = []
-
-    connection = connect_to_db("prices.db")
-    stores = retrieve_stores(connection)
-    connection.close()
 
     # Create a dictionary with Manager to be shared by all processes
     with Manager() as manager:
         shopping_dict = manager.dict()
-    for store in stores:
-        p = Process(target=main, args=(store, shopping_dict))
-        p.start()
-        processes.append(p)
 
-    # Wait for all processes to complete before proceeding
-    for p in processes:
-        p.join()
+        for store in stores:
+            p = Process(target=main, args=(store, shopping_dict))
+            processes.append(p)
+            p.start()
 
-    # Create a final shopping list from the shared shopping_dict
-    for store in shopping_dict:
-        # If there were no sales at a store, shopping_dict[store] is empty
-        if not shopping_dict[store]:
-            print(f"No sales found at {store}. 😓")
-        shopping_list.extend(shopping_dict[store])
+        # Wait for all processes to complete before proceeding
+        for p in processes:
+            p.join()
 
-    print(f"shopping_list: {shopping_list}")
+        # Construct a final shopping list from the shared shopping_dict
+        for store in shopping_dict:
+            # If there were no sales at a store, shopping_dict[store] is empty
+            if not shopping_dict[store]:
+                print(f"No sales found at {store}.")
+            else:
+                shopping_list.append(shopping_dict[store])
 
-    # TODO: HTML sending
+    for store_results in shopping_list:
+        print(store_results)
+        print("\n")
+
     # send_email(shopping_list)
