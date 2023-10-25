@@ -72,17 +72,16 @@ if __name__ == "__main__":
     # TODO: If config.yaml has been modified, update the database
     # ...
 
-    connection = connect_to_db("prices.db")
-
-    stores = retrieve_stores(connection)
-
-    connection.close()
-
     ##############################
     #       Multiprocessing      #
     ##############################
     processes = []
     shopping_list = []
+    stores = []
+
+    connection = connect_to_db("prices.db")
+    stores = retrieve_stores(connection)
+    connection.close()
 
     # Create a dictionary with Manager to be shared by all processes
     with Manager() as manager:
