@@ -1,6 +1,6 @@
 # Auto Shopping List
 
-Auto Shopping List is an automation script that web scrapes prices, stores them in a database, and e-mails sales to the user. Upon initialization, the database retains price history of the items you specify, and can be used to inform purchase decisions in a fashion similar to [camelcamelcamel](https://www.camelcamelcamel.ca/).
+Auto Shopping List is an automation script that web scrapes prices of products, stores them in a database, and e-mails sales to the user. Upon initialization, the database retains price history of the items you specify, and can be used to inform purchase decisions in a fashion similar to [camelcamelcamel](https://www.camelcamelcamel.ca/).
 
 Built with Python, Selenium, and SQLite.
 
@@ -8,6 +8,11 @@ Built with Python, Selenium, and SQLite.
 
 - **Modular**: supports multiple websites through OOP-like design
 - **Multiprocessing**: scrapes multiple stores simultaneously
+
+## How to Use
+
+Edit the *config.yaml* file that comes with the project. This file contains examples to guide you along.
+All you have to do is provide URLs of the product you want to track (along with a short name).
 
 ## Database Schema
 
