@@ -15,17 +15,14 @@ def connect_to_db(path: str) -> sqlite3.Connection:
 
     Returns:
         -sqlite3.Connection: a connection to the "prices.db" database upon success.
-        -None: upon failure.
-
     """
 
     try:
         connection = sqlite3.connect(path)
-        print(f"Connection to {path} successful.")
         return connection
     except Error as e:
         print(f"Error connecting to {path}: {e}")
-        return None
+        exit(-1)
 
 
 def execute_query(connection: sqlite3.Connection, query: str) -> bool:
@@ -73,7 +70,7 @@ def execute_read_query(connection: sqlite3.Connection, query: str, params=()) ->
 
 def create_db(stores_and_products: dict[str, list[str]]) -> None:
     """
-    Create a SQLite database containing stores and products specified in the config.yml file.
+    Create a SQLite database containing stores and products specified in the config.yaml file.
     Note that if the file does not exist, its creation will be handled automatically by SQLite.
 
     Params:
@@ -145,11 +142,25 @@ def create_db(stores_and_products: dict[str, list[str]]) -> None:
                 (url, name) = product
                 product_records.append((url, name, store))
 
+        # If nothing was added to the records, then the user hasn't configured
+        # the config.yaml file properly. Exit.
+        if not store_records or not product_records:
+            print(
+                "ERROR: No entries detected. Please add some product URLs to the config.yaml file.")
+            exit(-1)
+
         # Insert stores and products
         execute_many_query(connection, insert_stores, store_records)
         execute_many_query(connection, insert_products, product_records)
 
     connection.close()
+
+
+def update_db(new_stores_and_products: dict[str, list[str]]) -> None:
+    """
+    Update the database according to config.yaml, i.e. if new URLs are inserted or
+    existing URLs are removed from the config file, the database will reflect those changes.
+    """
 
 
 def insert_price_history(connection: sqlite3.Connection, price_data: list[tuple]) -> None:

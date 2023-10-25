@@ -5,6 +5,7 @@ from multiprocessing import Process, Manager
 
 from database import connect_to_db
 from database import create_db
+from database import update_db
 from database import retrieve_stores
 from database import insert_price_history
 from database import retrieve_avg_price
@@ -52,7 +53,7 @@ def main(store: str, shopping_dict: dict) -> None:
 # using multiple browsers in parallel.
 if __name__ == "__main__":
     ##############################
-    #           Setup            #
+    #           Config           #
     ##############################
 
     # Load the config file
@@ -62,27 +63,37 @@ if __name__ == "__main__":
     email = config.get("email")
     stores_and_products = config.get("stores")
 
-    # If prices.db doesn't exist, create a new database using the config file
+    # If prices.db doesn't exist yet, create a new database using the config file
     cwd = os.getcwd()
     if not os.path.exists(f"{cwd}/prices.db"):
         print("Initializing first-time setup...")
         create_db(stores_and_products)
-        print("Setup complete! Exiting...")
+        print("Setup complete!")
 
-    # TODO: If config.yaml has been modified, update the database
-    # ...
+    else:
+        # Check if config.yaml has been modified; if so, update the database
+        curr_modified = os.path.getmtime("config_private.yaml")
+        last_modified = config.get("last_modified")
 
-    connection = connect_to_db("prices.db")
+        if curr_modified != last_modified:
+            print("Changes detected in config.yaml.")
+            print("Updating database...")
+            update_db(stores_and_products)
+            print("Update complete!")
 
-    stores = retrieve_stores(connection)
-
-    connection.close()
+            # TODO:
+            print("List of changes: ")
 
     ##############################
     #       Multiprocessing      #
     ##############################
     processes = []
     shopping_list = []
+    stores = []
+
+    connection = connect_to_db("prices.db")
+    stores = retrieve_stores(connection)
+    connection.close()
 
     # Create a dictionary with Manager to be shared by all processes
     with Manager() as manager:
@@ -109,4 +120,5 @@ if __name__ == "__main__":
         print(store_results)
         print("\n")
 
+    # TODO:
     # send_email(shopping_list)

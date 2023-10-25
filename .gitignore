@@ -6,6 +6,7 @@
 
 # Other users don't need these files
 test.py
+todo.md
 
 prices.db
 config_private.yaml

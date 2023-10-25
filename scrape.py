@@ -73,13 +73,14 @@ def scrape(connection: sqlite3.Connection, store: str) -> list[tuple]:
     WEBDRIVER_PATH = "./chromedriver.exe"
 
     # Brave browser
-    # BRAVE_PATH = "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"
-    # option = webdriver.ChromeOptions()
-    # option.binary_location = BRAVE_PATH
+    BRAVE_PATH = "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"
+    options = webdriver.ChromeOptions()
+    options.binary_location = BRAVE_PATH
+    options.add_argument("--headless")
 
-    # with webdriver.Chrome(executable_path=WEBDRIVER_PATH, chrome_options=option) as driver:
+    with webdriver.Chrome(executable_path=WEBDRIVER_PATH, chrome_options=options) as driver:
 
-    with webdriver.Chrome(WEBDRIVER_PATH) as driver:
+        # with webdriver.Chrome(WEBDRIVER_PATH) as driver:
         # TODO: Download webdriver automatically (JSON endpoints).
 
         driver.implicitly_wait(5)
