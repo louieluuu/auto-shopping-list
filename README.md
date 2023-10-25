@@ -11,8 +11,8 @@ Built with Python, Selenium, and SQLite.
 
 ## How to Use
 
-Edit the *config.yaml* file that comes with the project. This file contains examples to guide you along.
-All you have to do is provide URLs of the product you want to track (along with a short name).
+Edit the *config.yaml* file that comes with the project. *config.yaml* contains easy-to-follow examples to guide you along.
+In a word, all you have to do is provide URLs and names of the product you want to track! Everything else - including the creation and updating of the database - will be handled by the program.
 
 ## Database Schema
 
