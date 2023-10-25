@@ -11,4 +11,4 @@ Built with Python, Selenium, and SQLite.
 
 ## Database Schema
 ### ER Diagram
-![er diagram xml drawio](https://github.com/louieluuu/auto-shopping-list/assets/112336312/6262398a-a97f-4e28-84d4-0e1cd91257c9)
+![ER Diagram drawio](https://github.com/louieluuu/auto-shopping-list/assets/112336312/0acb1f49-3440-4df7-8ecf-8ee48e8c8358)
