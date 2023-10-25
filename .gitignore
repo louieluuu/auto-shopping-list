@@ -6,7 +6,9 @@
 
 # Other users don't need these files
 test.py
+
 prices.db
+config_private.yml
 
 chromedriver.exe
 

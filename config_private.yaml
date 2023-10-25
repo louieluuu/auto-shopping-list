@@ -1,0 +1,33 @@
+# Specify the email you want the Shopping List sent to.
+email: goldjet32@gmail.com
+
+# Paste the URLs of products whose prices you want to track below.
+stores:
+  CanadaComputers:
+    # - https://www.canadacomputers.com/product_info.php?cPath=15_4232&item_id=137315
+
+  MemoryExpress:
+
+  NoFrills:
+    - [https://www.nofrills.ca/red-split-lentils/p/20558862_EA, Red Lentils]
+    - [https://www.nofrills.ca/smooth-peanut-butter-club-size/p/20323398002_EA, Peanut Butter]
+    - [https://www.nofrills.ca/lemon-lime-sports-drink-case/p/20303218004_C06, Gatorade Lime 6-Pack]
+    - [
+        https://www.nofrills.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA,
+        Lindt 70% Dark Chocolate Bar,
+      ]
+
+  Superstore:
+    - [https://www.realcanadiansuperstore.ca/red-split-lentils/p/20558862_EA, Red Lentils]
+    - [
+        https://www.realcanadiansuperstore.ca/smooth-peanut-butter-club-size/p/20323398002_EA,
+        Peanut Butter,
+      ]
+    - [
+        https://www.realcanadiansuperstore.ca/lemon-lime-sports-drink-case/p/20303218004_C06,
+        Gatorade Lime 6-Pack,
+      ]
+    - [
+        https://www.realcanadiansuperstore.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA,
+        Lindt 70% Dark Chocolate Bar,
+      ]

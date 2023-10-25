@@ -35,9 +35,6 @@ class NoFrills:
             return price
 
         except NoSuchElementException:
-            print(
-                "Sale price not found."
-            )
             return -1
 
     @staticmethod

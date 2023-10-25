@@ -35,7 +35,7 @@ INSERT INTO
     store (name)
 VALUES
     ("Superstore"),
-    ("No Frills")
+    ("NoFrills")
 """
 
 insert_products = """
@@ -47,10 +47,10 @@ VALUES
     ("https://www.realcanadiansuperstore.ca/lemon-lime-sports-drink-case/p/20303218004_C06", "Gatorade", "Superstore"),
     ("https://www.realcanadiansuperstore.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA", "Lindt Chocolate Bar 70%", "Superstore"),
 
-    ("https://www.nofrills.ca/red-split-lentils/p/20558862_EA", "Red Split Lentils 1.8kg", "No Frills"),
-    ("https://www.nofrills.ca/smooth-peanut-butter-club-size/p/20323398002_EA", "No Name Smooth Peanut Butter, Club Size 2kg", "No Frills"),
-    ("https://www.nofrills.ca/lemon-lime-sports-drink-case/p/20303218004_C06", "Gatorade", "No Frills"),
-    ("https://www.nofrills.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA", "Lindt Chocolate Bar 70%", "No Frills")
+    ("https://www.nofrills.ca/red-split-lentils/p/20558862_EA", "Red Split Lentils 1.8kg", "NoFrills"),
+    ("https://www.nofrills.ca/smooth-peanut-butter-club-size/p/20323398002_EA", "No Name Smooth Peanut Butter, Club Size 2kg", "NoFrills"),
+    ("https://www.nofrills.ca/lemon-lime-sports-drink-case/p/20303218004_C06", "Gatorade", "NoFrills"),
+    ("https://www.nofrills.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA", "Lindt Chocolate Bar 70%", "NoFrills")
 """
 
 ### for testing only - dummy data ###
@@ -58,7 +58,7 @@ insert_price_history = """
 INSERT INTO
     price_history (price, is_sale, timestamp, product_url)
 VALUES
-    (6.00, True, DATE("now"), "https://www.realcanadiansuperstore.ca/red-split-lentils/p/20558862_EA"),
+    (6.00, False, DATE("now"), "https://www.realcanadiansuperstore.ca/red-split-lentils/p/20558862_EA"),
     (8.49, False, DATE("now"), "https://www.realcanadiansuperstore.ca/smooth-peanut-butter-club-size/p/20323398002_EA"),
     (6.99, TRUE, DATE("now"), "https://www.realcanadiansuperstore.ca/lemon-lime-sports-drink-case/p/20303218004_C06"),
     (4.49, FALSE, DATE("now"), "https://www.realcanadiansuperstore.ca/excellence-70-cacao-dark-chocolate-bar/p/20312527005_EA"),
@@ -88,7 +88,7 @@ def main():
         execute_query(connection, insert_products)
 
         ### for testing only - dummy data ###
-        # execute_query(connection, insert_price_history)
+        execute_query(connection, insert_price_history)
 
     connection.close()
 
