@@ -14,7 +14,7 @@ def connect_to_db(path: str) -> sqlite3.Connection:
         path (str): the file location of the database.
 
     Returns:
-        -sqlite3.Connection: a connection to the "prices.db" database upon success.
+        -sqlite3.Connection: A connection to the "prices.db" database upon success.
         -None: upon failure.
 
     """
@@ -69,87 +69,6 @@ def execute_read_query(connection: sqlite3.Connection, query: str, params=()) ->
     except Error as e:
         print(f"Error executing query: {e}")
         return None
-
-
-def create_db(stores_and_products: dict[str, list[str]]) -> None:
-    """
-    Create a SQLite database containing stores and products specified in the config.yml file.
-    Note that if the file does not exist, its creation will be handled automatically by SQLite.
-
-    Params:
-        stores_and_products (dict[str, list[str]]): a dictionary of stores and their products.
-    """
-
-    # Create tables
-    create_store_table = """
-    CREATE TABLE store (
-        name TEXT PRIMARY KEY
-    )
-    """
-
-    create_product_table = """
-    CREATE TABLE product (
-        url TEXT PRIMARY KEY,
-        name TEXT,
-
-        store_name TEXT,
-        FOREIGN KEY(store_name) REFERENCES store(name)
-    )
-    """
-
-    create_price_history_table = """
-    CREATE TABLE price_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        price REAL,
-        is_sale INTEGER,
-        timestamp TEXT, 
-        
-        product_url TEXT,
-        FOREIGN KEY(product_url) REFERENCES product(url)
-    )
-    """
-
-    # Insert
-    insert_stores = """
-    INSERT INTO 
-        store (name)
-    VALUES
-        (?)
-    """
-
-    insert_products = """
-    INSERT INTO
-        product (url, name, store_name)
-    VALUES
-        (?, ?, ?)
-    """
-
-    connection = connect_to_db("prices.db")
-
-    store_records = []
-    product_records = []
-
-    with connection:
-        # Create tables
-        execute_query(connection, create_store_table)
-        execute_query(connection, create_product_table)
-        execute_query(connection, create_price_history_table)
-
-        # Extract store and product data from config file
-        for (store, products) in stores_and_products.items():
-            if products is None:
-                continue
-
-            store_records.append((store,))
-            for product in products:
-                (url, name) = product
-                product_records.append((url, name, store))
-
-        # Insert stores and products
-        execute_many_query(connection, insert_stores, store_records)
-        execute_many_query(connection, insert_products, product_records)
-
-    connection.close()
 
 
 def insert_price_history(connection: sqlite3.Connection, price_data: list[tuple]) -> None:
